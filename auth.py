@@ -14,9 +14,13 @@ from config import (
     CLI_VERSION,
     CLIENT_IDENTIFIER,
     CLIENT_SURFACE,
-    TOKEN_REFRESH_SKEW,
 )
 from oidc_auth import parse_expires_at
+
+
+def _token_refresh_skew() -> float:
+    import config
+    return config.TOKEN_REFRESH_SKEW
 
 
 class AuthError(Exception):
@@ -47,7 +51,7 @@ class GrokCredentials:
             return False
         if self.expires_at is None:
             return False
-        return time.time() >= (self.expires_at - TOKEN_REFRESH_SKEW)
+        return time.time() >= (self.expires_at - _token_refresh_skew())
 
 
 def _read_auth(path: Path) -> dict[str, Any]:

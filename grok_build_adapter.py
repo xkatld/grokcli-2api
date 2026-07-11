@@ -153,6 +153,11 @@ def registration_available() -> dict[str, Any]:
     except Exception:
         pass
     try:
+        from config import YESCAPTCHA_KEY as _cfg_yescaptcha
+        yescaptcha_configured = bool(YESCAPTCHA_KEY) or bool(_cfg_yescaptcha)
+    except Exception:
+        yescaptcha_configured = bool(YESCAPTCHA_KEY)
+    try:
         ensure_xconsole()
         return {
             "ok": True,
@@ -161,7 +166,7 @@ def registration_available() -> dict[str, Any]:
             "path": str(GBA),
             "vendored": True,
             "adapter_build": ADAPTER_BUILD,
-            "yescaptcha_configured": bool(YESCAPTCHA_KEY),
+            "yescaptcha_configured": yescaptcha_configured,
             "moemail_configured": moemail_configured,
         }
     except Exception as e:  # noqa: BLE001
@@ -173,7 +178,7 @@ def registration_available() -> dict[str, Any]:
             "vendored": True,
             "adapter_build": ADAPTER_BUILD,
             "error": str(e),
-            "yescaptcha_configured": bool(YESCAPTCHA_KEY),
+            "yescaptcha_configured": yescaptcha_configured,
             "moemail_configured": moemail_configured,
         }
 
@@ -190,21 +195,21 @@ def _make_email_receiver(
     expiry_ms: int | None = None,
 ):
     from moemail import moemail_create_mailbox
-    from config import MOEMAIL_API_KEY, MOEMAIL_BASE_URL, MOEMAIL_DOMAIN, MOEMAIL_EXPIRY_MS
+    import config
 
-    key = (api_key or MOEMAIL_API_KEY or "").strip()
+    key = (api_key or config.MOEMAIL_API_KEY or "").strip()
     if not key:
         raise ValueError(
             "MoeMail API key missing. Set GROK2API_MOEMAIL_API_KEY or pass api_key."
         )
-    base = (base_url or MOEMAIL_BASE_URL).rstrip("/")
-    dom = (domain or MOEMAIL_DOMAIN).strip(".")
+    base = (base_url or config.MOEMAIL_BASE_URL).rstrip("/")
+    dom = (domain or config.MOEMAIL_DOMAIN).strip(".")
     pre = (prefix or f"grok-{secrets.token_hex(4)}").lower()
 
     mailbox = moemail_create_mailbox(
         name=pre,
         domain=dom,
-        expiry_ms=expiry_ms if expiry_ms is not None else MOEMAIL_EXPIRY_MS,
+        expiry_ms=expiry_ms if expiry_ms is not None else config.MOEMAIL_EXPIRY_MS,
         api_key=key,
         base_url=base,
     )
@@ -272,9 +277,9 @@ def _make_email_receiver(
 
 def _proxy_url() -> str:
     from moemail import normalize_proxy_config
-    from config import XAI_PROXY
+    import config
 
-    cfg = normalize_proxy_config(XAI_PROXY or None)
+    cfg = normalize_proxy_config(config.XAI_PROXY or None)
     return cfg["proxy"] if cfg else ""
 
 
@@ -552,7 +557,7 @@ def _run_registration(
             build_cliproxyapi_auth_record,
         )
         import accounts
-        from config import UPSTREAM_BASE
+        import config as _config
 
         update("registering", "visiting signup page")
         client = XConsoleAuthClient(

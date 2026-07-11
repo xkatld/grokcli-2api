@@ -116,5 +116,6 @@ DEFAULTS: dict[str, Any] = {
 def __getattr__(name: str) -> Any:
     if name in DEFAULTS:
         import settings_store
+        settings_store.ensure_defaults()
         return settings_store.get_config(name.lower(), DEFAULTS[name])
     raise AttributeError(f"module '{__name__}' has no attribute '{name}'")

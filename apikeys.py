@@ -12,7 +12,7 @@ from dataclasses import asdict, dataclass, field
 from pathlib import Path
 from typing import Any
 
-from config import API_KEY, KEYS_FILE, REQUIRE_API_KEY
+from config import API_KEY, KEYS_FILE
 
 
 _lock = threading.RLock()
@@ -231,7 +231,8 @@ def has_any_keys() -> bool:
 
 def auth_required() -> bool:
     """Whether /v1 must present a valid API key."""
-    mode = (REQUIRE_API_KEY or "auto").lower()
+    import config
+    mode = (config.REQUIRE_API_KEY or "auto").lower()
     if mode in ("1", "true", "yes", "on"):
         return True
     if mode in ("0", "false", "no", "off"):

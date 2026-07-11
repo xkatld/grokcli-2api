@@ -1,5 +1,5 @@
 const THEME_KEY = "g2a_theme";
-let current_theme = localStorage.getItem(THEME_KEY) || "dark";
+let current_theme = localStorage.getItem(THEME_KEY) || "light";
 document.documentElement.setAttribute("data-theme", current_theme);
 const TOKEN_KEY = "g2a_admin_token";
 const REG_CONFIG_KEY = "g2a_register_config";
@@ -1068,20 +1068,22 @@ $("auth-submit").onclick = async () => {
 $("password").addEventListener("keydown", e => { if (e.key === "Enter") $("auth-submit").click(); });
 $("auth-refresh").onclick = () => bootstrap();
 const theme_btn = $("btn-toggle-theme");
+const auth_theme_btn = $("btn-toggle-theme-auth");
 function update_theme_ui() {
-  if (current_theme === "light") {
-    theme_btn.textContent = "☾ 暗色主题";
-  } else {
-    theme_btn.textContent = "☼ 白色主题";
-  }
+  const label = current_theme === "light" ? "☾ 暗色主题" : "☼ 白色主题";
+  if (theme_btn) theme_btn.textContent = label;
+  if (auth_theme_btn) auth_theme_btn.textContent = label;
 }
 update_theme_ui();
-theme_btn.onclick = () => {
-  current_theme = current_theme === "light" ? "dark" : "light";
-  document.documentElement.setAttribute("data-theme", current_theme);
-  localStorage.setItem(THEME_KEY, current_theme);
-  update_theme_ui();
-};
+[theme_btn, auth_theme_btn].forEach(btn => {
+  if (!btn) return;
+  btn.onclick = () => {
+    current_theme = current_theme === "light" ? "dark" : "light";
+    document.documentElement.setAttribute("data-theme", current_theme);
+    localStorage.setItem(THEME_KEY, current_theme);
+    update_theme_ui();
+  };
+});
 $("btn-logout").onclick = async () => {
   try { await api("/logout", { method: "POST" }); } catch {}
   token = "";

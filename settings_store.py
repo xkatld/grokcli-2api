@@ -36,7 +36,7 @@ def _load_disk() -> dict[str, Any]:
     cursor.execute("SELECT key, value FROM settings")
     rows = cursor.fetchall()
     conn.close()
-    res = {}
+    res = {"_defaults_ensured": False}
     for row in rows:
         key, val = row[0], row[1]
         try:
@@ -308,9 +308,27 @@ def get_public_settings() -> dict[str, Any]:
         "updated_at": data.get("updated_at"),
     }
 
+def ensure_defaults() -> None:
+    import config
+    with _lock:
+        data = _load()
+        if data.get("_defaults_ensured"):
+            return
+        changed = False
+        for k, v in config.DEFAULTS.items():
+            lower = k.lower()
+            if lower not in data:
+                data[lower] = v
+                changed = True
+        data["_defaults_ensured"] = True
+        if changed:
+            _save(data, immediate=True)
+
+
 def get_config(key: str, default: Any) -> Any:
     data = _load()
     return data.get(key, default)
+
 
 def set_config(key: str, value: Any) -> None:
     with _lock:

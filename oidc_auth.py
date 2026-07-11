@@ -696,11 +696,22 @@ def refresh_all_accounts(
     """
     from concurrent.futures import ThreadPoolExecutor, as_completed
 
-    try:
-        from config import TOKEN_REFRESH_BATCH, TOKEN_REFRESH_WORKERS
-    except Exception:
-        TOKEN_REFRESH_WORKERS = 4
-        TOKEN_REFRESH_BATCH = 40
+    import config
+
+    def _refresh_workers():
+        try:
+            return int(config.TOKEN_REFRESH_WORKERS)
+        except Exception:
+            return 4
+
+    def _refresh_batch():
+        try:
+            return int(config.TOKEN_REFRESH_BATCH)
+        except Exception:
+            return 40
+
+    TOKEN_REFRESH_WORKERS = _refresh_workers()
+    TOKEN_REFRESH_BATCH = _refresh_batch()
 
     if max_workers is None:
         max_workers = TOKEN_REFRESH_WORKERS

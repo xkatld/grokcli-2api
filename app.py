@@ -60,6 +60,11 @@ def _on_startup() -> None:
     cheap normalize here; refresh/probe are staggered + concurrency-capped.
     """
     try:
+        import settings_store
+        settings_store.ensure_defaults()
+    except Exception as e:
+        print(f"  (settings defaults failed: {e})")
+    try:
         from oidc_auth import normalize_auth_file_keys
         from auth_store import read_auth_map
 
@@ -704,7 +709,11 @@ class _ReasoningCompatState:
     """Track <think> open/close when rewriting reasoning for secondary relays."""
 
     def __init__(self, mode: str | None = None) -> None:
-        self.mode = (mode or REASONING_COMPAT or "off").strip().lower()
+        import config
+        current = mode
+        if current is None:
+            current = config.REASONING_COMPAT
+        self.mode = (current or "off").strip().lower()
         # Explicit opt-in aliases for think_tag (legacy "on" meant inject into content).
         if self.mode in ("1", "true", "yes", "on"):
             self.mode = "think_tag"
@@ -1070,13 +1079,14 @@ async def health():
         # Health must stay a bounded read-only route. Do not make an OIDC
         # refresh request while resolving the representative account.
         creds = account_pool.acquire(auto_refresh=False)
+        import config
         return {
             "status": "ok",
             "version": APP_VERSION,
             "email": creds.email,
             "expires_at": creds.expires_at,
             "auth_key": creds.auth_key,
-            "upstream": UPSTREAM_BASE,
+            "upstream": config.UPSTREAM_BASE,
             "auth_required": apikeys.auth_required(),
             "account_mode": pool.get("mode"),
             "accounts_live": pool.get("live"),
@@ -1207,7 +1217,8 @@ async def chat_completions(req: ChatCompletionRequest, request: Request):
         return openai_error(str(e), status=401, err_type="authentication_error")
 
     body = build_upstream_body(req, model)
-    url = f"{UPSTREAM_BASE}/chat/completions"
+    import config
+    url = f"{config.UPSTREAM_BASE}/chat/completions"
     chat_id = f"chatcmpl-{uuid.uuid4().hex[:24]}"
     created = int(time.time())
 
@@ -1881,7 +1892,8 @@ async def anthropic_messages(
     if FORCE_UPSTREAM_STREAM:
         body["stream"] = True
     _ensure_stream_include_usage(body)
-    url = f"{UPSTREAM_BASE}/chat/completions"
+    import config
+    url = f"{config.UPSTREAM_BASE}/chat/completions"
 
     if req.stream:
         return StreamingResponse(
@@ -2296,7 +2308,7 @@ def _detect_public_base_url(port: int) -> str | None:
 
 def _admin_url(host: str, port: int) -> str:
     # Prefer explicit public URL for server deployments.
-    public = (getattr(_config, "PUBLIC_BASE_URL", "") or "").strip().rstrip("/")
+    public = (_config.PUBLIC_BASE_URL or "").strip().rstrip("/")
     if not public:
         public = _detect_public_base_url(port) or ""
     if public:
@@ -2365,9 +2377,7 @@ def main() -> None:
     _config.HOST = host
     _config.PORT = port
 
-    configured_public = (
-        getattr(_config, "PUBLIC_BASE_URL", "") or ""
-    ).strip().rstrip("/")
+    configured_public = (_config.PUBLIC_BASE_URL or "").strip().rstrip("/")
     detected_public = None if configured_public else _detect_public_base_url(port)
     public = configured_public or detected_public or ""
     admin = _admin_url(host, port)
@@ -2391,7 +2401,7 @@ def main() -> None:
         print("  Admin/API links also follow request Host / X-Forwarded-* headers")
     elif host in ("0.0.0.0", "::"):
         print("  Tip: set GROK2API_PUBLIC_BASE_URL=https://your.domain if auto-detect is wrong")
-    print(f"  Upstream:           {UPSTREAM_BASE}")
+    print(f"  Upstream:           {config.UPSTREAM_BASE}")
     if port != PORT:
         print(f"  NOTE: port {PORT} busy, using {port} instead")
 

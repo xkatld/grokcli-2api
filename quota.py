@@ -18,7 +18,18 @@ from typing import Any
 import httpx
 
 from auth import GrokCredentials, list_live_credentials, load_credentials_by_id, upstream_headers
-from config import CLI_VERSION, DEFAULT_MODEL, UPSTREAM_BASE
+from config import CLI_VERSION
+
+
+def _default_model() -> str:
+    import config
+    return config.DEFAULT_MODEL
+
+
+def _upstream_base() -> str:
+    import config
+    return config.UPSTREAM_BASE
+
 
 # Upstream returns amounts as {"val": number}. Unit is USD (often 0 on free/promo).
 _QUOTA_TIMEOUT = 20.0
@@ -48,7 +59,7 @@ _QUOTA_ERROR_RE = re.compile(
 
 def _headers(token: str) -> dict[str, str]:
     # Reuse CLI client headers; model override not needed for billing/user.
-    h = upstream_headers(token, DEFAULT_MODEL)
+    h = upstream_headers(token, _default_model())
     h["Accept"] = "application/json"
     return h
 
@@ -324,8 +335,8 @@ def fetch_quota_for_creds(creds: GrokCredentials) -> dict[str, Any]:
         "fetched_at": time.time(),
     }
     headers = _headers(creds.token)
-    billing_url = f"{UPSTREAM_BASE}/billing"
-    user_url = f"{UPSTREAM_BASE}/user"
+    billing_url = f"{_upstream_base()}/billing"
+    user_url = f"{_upstream_base()}/user"
     try:
         with httpx.Client(timeout=_QUOTA_TIMEOUT) as client:
             br = client.get(billing_url, headers=headers)
@@ -361,7 +372,7 @@ def fetch_quota_for_creds(creds: GrokCredentials) -> dict[str, Any]:
         **bill,
         "user": user,
         "cli_version": CLI_VERSION,
-        "upstream": UPSTREAM_BASE,
+        "upstream": _upstream_base(),
     }
     return maybe_disable_from_quota_result(result)
 
@@ -374,8 +385,8 @@ async def fetch_quota_for_creds_async(creds: GrokCredentials) -> dict[str, Any]:
         "fetched_at": time.time(),
     }
     headers = _headers(creds.token)
-    billing_url = f"{UPSTREAM_BASE}/billing"
-    user_url = f"{UPSTREAM_BASE}/user"
+    billing_url = f"{_upstream_base()}/billing"
+    user_url = f"{_upstream_base()}/user"
     try:
         async with httpx.AsyncClient(timeout=_QUOTA_TIMEOUT) as client:
             br = await client.get(billing_url, headers=headers)
@@ -409,7 +420,7 @@ async def fetch_quota_for_creds_async(creds: GrokCredentials) -> dict[str, Any]:
         **bill,
         "user": user,
         "cli_version": CLI_VERSION,
-        "upstream": UPSTREAM_BASE,
+        "upstream": _upstream_base(),
     }
     return maybe_disable_from_quota_result(result)
 

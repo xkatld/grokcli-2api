@@ -11,20 +11,24 @@ from config import (
     CLI_VERSION,
     CLIENT_IDENTIFIER,
     CLIENT_SURFACE,
-    DEFAULT_MODEL,
     MODEL_ALIASES,
     MODELS_CACHE,
-    UPSTREAM_BASE,
 )
 
 
+def _default_model() -> str:
+    import config
+    return config.DEFAULT_MODEL
+
+
 def resolve_model(model: str | None) -> str:
+    default = _default_model()
     if not model:
-        return DEFAULT_MODEL
+        return default
     m = model.strip()
     # grok-search always routes to default model with web search enabled
     if m.lower() in ("grok-search", "web-search"):
-        return DEFAULT_MODEL
+        return default
     return MODEL_ALIASES.get(m, MODEL_ALIASES.get(m.lower(), m))
 
 
@@ -57,9 +61,10 @@ def load_models_from_cache(path: Path | None = None) -> list[dict[str, Any]]:
             pass
 
     if not models:
+        default = _default_model()
         models = [
             {
-                "id": DEFAULT_MODEL,
+                "id": default,
                 "object": "model",
                 "created": int(time.time()),
                 "owned_by": "xai",
@@ -79,7 +84,8 @@ def load_models_from_cache(path: Path | None = None) -> list[dict[str, Any]]:
             },
         ]
     # stable order: default first
-    models.sort(key=lambda m: (0 if m.get("id") == DEFAULT_MODEL else 1, m.get("id") or ""))
+    default = _default_model()
+    models.sort(key=lambda m: (0 if m.get("id") == default else 1, m.get("id") or ""))
     return models
 
 
@@ -111,7 +117,7 @@ def sync_models_from_upstream(path: Path | None = None) -> dict[str, Any]:
     except AuthError as e:
         return {"ok": False, "error": str(e)}
 
-    url = f"{UPSTREAM_BASE}/models"
+    url = f"{config.UPSTREAM_BASE}/models"
     try:
         with httpx.Client(timeout=30.0) as client:
             resp = client.get(url, headers=_upstream_headers(creds.token))

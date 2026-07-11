@@ -608,11 +608,11 @@ def do_refresh_all(
     force=True: refresh all; force=False: only near-expiry.
     account_ids: optional subset to renew (single / multi-select).
     """
-    from config import TOKEN_REFRESH_SKEW
+    import config
 
     result = refresh_all_accounts(
         only_near_expiry=not force,
-        skew_seconds=max(300.0, float(TOKEN_REFRESH_SKEW) * 2),
+        skew_seconds=max(300.0, float(config.TOKEN_REFRESH_SKEW) * 2),
         account_ids=account_ids,
     )
     now = time.time()

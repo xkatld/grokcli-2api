@@ -18,16 +18,27 @@ import httpx
 
 from auth import GrokCredentials, list_live_credentials, load_credentials_by_id, upstream_headers
 from config import (
-    DEFAULT_MODEL,
     MODEL_HEALTH_AUTO_DISABLE,
     MODEL_HEALTH_INTERVAL,
     MODEL_HEALTH_STARTUP_DELAY,
     MODEL_PROBE_BATCH,
     MODEL_PROBE_WORKERS,
     PROBE_MODELS,
-    UPSTREAM_BASE,
 )
 from maintenance_gate import maintenance_slot
+
+
+_DEFAULT_MODEL = "grok-4.5"
+
+
+def _default_model() -> str:
+    import config
+    return getattr(config, "DEFAULT_MODEL", _DEFAULT_MODEL)
+
+
+def _upstream_base() -> str:
+    import config
+    return config.UPSTREAM_BASE
 
 _PROBE_TIMEOUT = 30.0
 
@@ -212,7 +223,7 @@ def probe_model_for_creds(
         "probed_at": t0,
         "source": source,
     }
-    url = f"{UPSTREAM_BASE}/chat/completions"
+    url = f"{_upstream_base()}/chat/completions"
     headers = upstream_headers(creds.token, model)
     headers["Accept"] = "text/event-stream, application/json"
     body = {
@@ -352,7 +363,7 @@ def probe_single_account(
     source: str = "manual",
 ) -> dict[str, Any]:
     """Probe one account with one model (default DEFAULT / PROBE_MODELS[0])."""
-    model = (model or (PROBE_MODELS[0] if PROBE_MODELS else DEFAULT_MODEL)).strip()
+    model = (model or (PROBE_MODELS[0] if PROBE_MODELS else _default_model())).strip()
     creds = load_credentials_by_id(account_id)
     result = probe_model_for_creds(
         creds, model, auto_disable=auto_disable, source=source
@@ -389,7 +400,7 @@ def probe_account_models(
     max_accounts: int | None = None,
 ) -> dict[str, Any]:
     """Probe one or all accounts for model availability (concurrency-capped)."""
-    models = models or list(PROBE_MODELS) or [DEFAULT_MODEL]
+    models = models or list(PROBE_MODELS) or [_default_model()]
     if account_id:
         creds_list = [load_credentials_by_id(account_id)]
         deferred = 0
@@ -531,7 +542,7 @@ def run_once(*, source: str = "background") -> dict[str, Any]:
             return result
         result = probe_account_models(
             None,
-            list(PROBE_MODELS) or [DEFAULT_MODEL],
+            list(PROBE_MODELS) or [_default_model()],
             auto_disable=True,
             source=source,
         )
@@ -633,7 +644,7 @@ def status(*, light: bool = False) -> dict[str, Any]:
         "startup_delay_sec": _startup_delay(),
         "probe_workers": MODEL_PROBE_WORKERS,
         "probe_batch": MODEL_PROBE_BATCH,
-        "probe_models": list(PROBE_MODELS) or [DEFAULT_MODEL],
+        "probe_models": list(PROBE_MODELS) or [_default_model()],
         "auto_disable": MODEL_HEALTH_AUTO_DISABLE,
         "last": last,
     }

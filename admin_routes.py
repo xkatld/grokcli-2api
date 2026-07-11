@@ -30,13 +30,7 @@ except Exception as _reg_import_err:  # noqa: BLE001
     _REG_IMPORT_ERROR = str(_reg_import_err)
 else:
     _REG_IMPORT_ERROR = None
-from config import (
-    CLI_VERSION,
-    DEFAULT_MODEL,
-    PUBLIC_BASE_URL,
-    REQUIRE_API_KEY,
-    UPSTREAM_BASE,
-)
+from config import CLI_VERSION
 from models import load_models_from_cache, resolve_model, sync_models_from_upstream
 from settings_store import (
     VALID_ACCOUNT_MODES,
@@ -229,7 +223,7 @@ def _request_public_origin(request: Request | None = None) -> str | None:
       2) current request Host / X-Forwarded-* (public reverse-proxy friendly)
     Never invent 127.0.0.1 when the request itself is non-loopback.
     """
-    configured = (PUBLIC_BASE_URL or getattr(_config, "PUBLIC_BASE_URL", "") or "").strip()
+    configured = (_config.PUBLIC_BASE_URL or "").strip()
     if configured:
         return configured.rstrip("/")
 
@@ -319,9 +313,9 @@ async def admin_status(request: Request):
         "host": host,
         "port": port,
         "public_origin": public_origin,
-        "upstream": UPSTREAM_BASE,
-        "default_model": DEFAULT_MODEL,
-        "require_api_key_mode": REQUIRE_API_KEY,
+        "upstream": _config.UPSTREAM_BASE,
+        "default_model": _config.DEFAULT_MODEL,
+        "require_api_key_mode": _config.REQUIRE_API_KEY,
         "api_base": api_base,
         "credentials_ok": creds_ok,
         "credentials_email": creds_email,
@@ -416,8 +410,8 @@ async def dashboard(
         "public_origin": public_origin,
         "api_base": _public_api_base(request),
         "cli_version": CLI_VERSION,
-        "upstream": UPSTREAM_BASE,
-        "default_model": DEFAULT_MODEL,
+        "upstream": _config.UPSTREAM_BASE,
+        "default_model": _config.DEFAULT_MODEL,
         "token_maintainer": token_maintainer.status(light=True),
         "model_health": model_health.status(light=True),
         "conversation_affinity": conversation_affinity.status(),
@@ -1168,7 +1162,7 @@ async def admin_models(
     return {
         "object": "list",
         "data": load_models_from_cache(),
-        "default_model": DEFAULT_MODEL,
+        "default_model": _config.DEFAULT_MODEL,
     }
 
 

@@ -41,11 +41,26 @@ def _skew() -> float:
 
 def _startup_delay() -> float:
     try:
-        from config import TOKEN_MAINTAIN_STARTUP_DELAY
-
-        return max(5.0, float(TOKEN_MAINTAIN_STARTUP_DELAY))
+        import config
+        return max(5.0, float(config.TOKEN_MAINTAIN_STARTUP_DELAY))
     except Exception:
         return 45.0
+
+
+def _refresh_batch() -> int:
+    try:
+        import config
+        return int(config.TOKEN_REFRESH_BATCH)
+    except Exception:
+        return 20
+
+
+def _refresh_workers() -> int:
+    try:
+        import config
+        return int(config.TOKEN_REFRESH_WORKERS)
+    except Exception:
+        return 2
 
 
 def _min_remaining_seconds(*, force: bool = False) -> float | None:
@@ -127,10 +142,10 @@ def run_once(*, force: bool = False) -> dict[str, Any]:
             # force: refresh even far-from-expiry, but still batch-capped so one
             # admin click never rewrites 700 accounts at once on WSL.
             try:
-                from config import TOKEN_REFRESH_BATCH
+                batch = _refresh_batch()
             except Exception:
-                TOKEN_REFRESH_BATCH = 20
-            force_batch = min(TOKEN_REFRESH_BATCH * 2, 40) if force else TOKEN_REFRESH_BATCH
+                batch = 20
+            force_batch = min(batch * 2, 40) if force else batch
             refresh = refresh_all_accounts(
                 only_near_expiry=not force,
                 skew_seconds=skew if not force else 365 * 86400.0,
@@ -230,11 +245,8 @@ def stop_background() -> None:
 
 def status(*, light: bool = False) -> dict[str, Any]:
     rem = None if light else _min_remaining_seconds()
-    try:
-        from config import TOKEN_REFRESH_BATCH, TOKEN_REFRESH_WORKERS
-    except Exception:
-        TOKEN_REFRESH_BATCH = 20
-        TOKEN_REFRESH_WORKERS = 2
+    batch = _refresh_batch()
+    workers = _refresh_workers()
     out = {
         "running": bool(_thread and _thread.is_alive()),
         "enabled": os.getenv("GROK2API_TOKEN_MAINTAIN", "1").lower()
@@ -242,8 +254,8 @@ def status(*, light: bool = False) -> dict[str, Any]:
         "interval_sec": _interval(),
         "refresh_skew_sec": _skew(),
         "startup_delay_sec": _startup_delay(),
-        "refresh_workers": TOKEN_REFRESH_WORKERS,
-        "refresh_batch": TOKEN_REFRESH_BATCH,
+        "refresh_workers": workers,
+        "refresh_batch": batch,
     }
     if light:
         # Keep /health tiny: only last outcome summary, no per-account rows.

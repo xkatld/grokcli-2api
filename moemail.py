@@ -12,19 +12,28 @@ from urllib.parse import quote, unquote, urlparse, urlunparse
 
 import httpx
 
-from config import (
-    MOEMAIL_API_KEY,
-    MOEMAIL_BASE_URL,
-    MOEMAIL_DOMAIN,
-    MOEMAIL_EXPIRY_MS,
-    XAI_PROXY,
-    XAI_PROXY_PASSWORD,
-    XAI_PROXY_USERNAME,
-)
+
+def _moemail_config() -> dict[str, Any]:
+    import config
+    return {
+        "api_key": config.MOEMAIL_API_KEY,
+        "base_url": config.MOEMAIL_BASE_URL,
+        "domain": config.MOEMAIL_DOMAIN,
+        "expiry_ms": config.MOEMAIL_EXPIRY_MS,
+    }
+
+
+def _proxy_config() -> dict[str, Any]:
+    import config
+    return {
+        "proxy": config.XAI_PROXY,
+        "username": config.XAI_PROXY_USERNAME,
+        "password": config.XAI_PROXY_PASSWORD,
+    }
 
 
 def _headers(api_key: str | None = None) -> dict[str, str]:
-    key = api_key or MOEMAIL_API_KEY
+    key = api_key or _moemail_config()["api_key"]
     if not key:
         return {}
     return {"X-API-Key": key}
@@ -37,11 +46,12 @@ def normalize_proxy_config(
     password: str | None = None,
 ) -> dict[str, Any] | None:
     """Normalize a proxy URL into curl/httpx-friendly forms."""
-    raw = (proxy or XAI_PROXY or "").strip()
+    cfg = _proxy_config()
+    raw = (proxy or cfg["proxy"] or "").strip()
     if not raw:
         return None
-    env_user = XAI_PROXY_USERNAME
-    env_pass = XAI_PROXY_PASSWORD
+    env_user = cfg["username"]
+    env_pass = cfg["password"]
     lower = raw.lower()
     if lower.startswith("soket5://"):
         raw = "socks5://" + raw.split("://", 1)[1]
@@ -157,17 +167,18 @@ def moemail_create_mailbox(
     proxy_username: str | None = None,
     proxy_password: str | None = None,
 ) -> dict[str, Any]:
-    if not (api_key or MOEMAIL_API_KEY):
+    cfg = _moemail_config()
+    if not (api_key or cfg["api_key"]):
         raise ValueError(
             "MoeMail API key missing. Set GROK2API_MOEMAIL_API_KEY or pass api_key."
         )
 
-    base = (base_url or MOEMAIL_BASE_URL).rstrip("/")
+    base = (base_url or cfg["base_url"]).rstrip("/")
     # MoeMail only accepts official presets: 3600000 / 86400000 / 259200000 / 0.
     # Do not use `expiry_ms or default` — permanent is 0 and must be preserved.
     _OFFICIAL = {3_600_000, 86_400_000, 259_200_000, 0}
     if expiry_ms is None:
-        chosen = int(MOEMAIL_EXPIRY_MS)
+        chosen = int(cfg["expiry_ms"])
     else:
         chosen = int(expiry_ms)
     if chosen not in _OFFICIAL:
@@ -176,7 +187,7 @@ def moemail_create_mailbox(
         chosen = min(timed, key=lambda p: abs(p - chosen))
     payload: dict[str, Any] = {
         "expiryTime": chosen,
-        "domain": domain or MOEMAIL_DOMAIN,
+        "domain": domain or cfg["domain"],
     }
     if name:
         payload["name"] = name
@@ -215,10 +226,11 @@ def moemail_fetch_messages(
 ) -> list[dict[str, Any]]:
     if not email_id:
         return []
-    if not (api_key or MOEMAIL_API_KEY):
+    cfg = _moemail_config()
+    if not (api_key or cfg["api_key"]):
         return []
 
-    base = (base_url or MOEMAIL_BASE_URL).rstrip("/")
+    base = (base_url or cfg["base_url"]).rstrip("/")
     with httpx.Client(timeout=30.0) as client:
         resp = client.get(f"{base}/api/emails/{email_id}", headers=_headers(api_key))
         if resp.status_code >= 400:

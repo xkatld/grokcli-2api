@@ -39,18 +39,34 @@ from curl_cffi import requests
 
 # Use project config when available, otherwise fall back to defaults
 try:
-    from config import AUTH_FILE, GROK_CLI_CLIENT_ID, OIDC_ISSUER, OIDC_SCOPES
+    from config import AUTH_FILE
 except Exception:  # pragma: no cover - standalone fallback
     AUTH_FILE = Path(os.getenv("GROK2API_AUTH_FILE", str(Path.home() / ".grok" / "auth.json")))
-    GROK_CLI_CLIENT_ID = os.getenv("GROK2API_OIDC_CLIENT_ID", "b1a00492-073a-47ea-816f-4c329264a828")
-    OIDC_ISSUER = os.getenv("GROK2API_OIDC_ISSUER", "https://auth.x.ai")
-    OIDC_SCOPES = os.getenv(
-        "GROK2API_OIDC_SCOPES",
-        "openid profile email offline_access grok-cli:access "
-        "api:access conversations:read conversations:write",
-    )
 
-AUTH_KEY = f"{OIDC_ISSUER}::{GROK_CLI_CLIENT_ID}"
+
+def _oidc_config() -> dict[str, str]:
+    try:
+        import config
+        return {
+            "client_id": config.GROK_CLI_CLIENT_ID,
+            "issuer": config.OIDC_ISSUER,
+            "scopes": config.OIDC_SCOPES,
+        }
+    except Exception:
+        return {
+            "client_id": os.getenv(
+                "GROK2API_OIDC_CLIENT_ID", "b1a00492-073a-47ea-816f-4c329264a828"
+            ),
+            "issuer": os.getenv("GROK2API_OIDC_ISSUER", "https://auth.x.ai"),
+            "scopes": os.getenv(
+                "GROK2API_OIDC_SCOPES",
+                "openid profile email offline_access grok-cli:access "
+                "api:access conversations:read conversations:write",
+            ),
+        }
+
+
+AUTH_KEY = f"{_oidc_config()['issuer']}::{_oidc_config()['client_id']}"
 
 
 def _proxy_kwargs() -> dict:
@@ -82,9 +98,9 @@ def rfc3339_ns(ts: float | None = None) -> str:
 
 
 def request_device_code() -> dict | None:
-    data = urllib.parse.urlencode({"client_id": GROK_CLI_CLIENT_ID, "scope": OIDC_SCOPES}).encode()
+    data = urllib.parse.urlencode({"client_id": _oidc_config()['client_id'], "scope": _oidc_config()['scopes']}).encode()
     req = urllib.request.Request(
-        f"{OIDC_ISSUER}/oauth2/device/code",
+        f"{_oidc_config()['issuer']}/oauth2/device/code",
         data=data,
         method="POST",
         headers={"Content-Type": "application/x-www-form-urlencoded"},
@@ -104,12 +120,12 @@ def poll_token(device_code: str, interval: int, expires_in: int, timeout: int = 
         data = urllib.parse.urlencode(
             {
                 "grant_type": "urn:ietf:params:oauth:grant-type:device_code",
-                "client_id": GROK_CLI_CLIENT_ID,
+                "client_id": _oidc_config()['client_id'],
                 "device_code": device_code,
             }
         ).encode()
         req = urllib.request.Request(
-            f"{OIDC_ISSUER}/oauth2/token",
+            f"{_oidc_config()['issuer']}/oauth2/token",
             data=data,
             method="POST",
             headers={"Content-Type": "application/x-www-form-urlencoded"},
@@ -155,7 +171,7 @@ def sso_to_token(sso_cookie: str) -> dict | None:
     try:
         s.get(dc["verification_uri_complete"], impersonate="chrome", timeout=15, **_proxy_kwargs())
         r = s.post(
-            f"{OIDC_ISSUER}/oauth2/device/verify",
+            f"{_oidc_config()['issuer']}/oauth2/device/verify",
             data={"user_code": dc["user_code"]},
             headers={"Content-Type": "application/x-www-form-urlencoded"},
             impersonate="chrome",
@@ -172,7 +188,7 @@ def sso_to_token(sso_cookie: str) -> dict | None:
 
     try:
         r = s.post(
-            f"{OIDC_ISSUER}/oauth2/device/approve",
+            f"{_oidc_config()['issuer']}/oauth2/device/approve",
             data={
                 "user_code": dc["user_code"],
                 "action": "allow",
@@ -239,8 +255,8 @@ def token_to_auth_entry(token: dict, email: str = "") -> tuple[str, dict]:
         "principal_id": principal_id,
         "refresh_token": refresh,
         "expires_at": expires_at,
-        "oidc_issuer": OIDC_ISSUER,
-        "oidc_client_id": GROK_CLI_CLIENT_ID,
+        "oidc_issuer": _oidc_config()['issuer'],
+        "oidc_client_id": _oidc_config()['client_id'],
     }
     return AUTH_KEY, entry
 
@@ -284,8 +300,8 @@ def import_into_project_auth(entry: dict) -> str:
         "email": entry.get("email", ""),
         "refresh_token": entry.get("refresh_token", ""),
         "expires_at": entry.get("expires_at"),
-        "oidc_issuer": entry.get("oidc_issuer", OIDC_ISSUER),
-        "oidc_client_id": entry.get("oidc_client_id", GROK_CLI_CLIENT_ID),
+        "oidc_issuer": entry.get("oidc_issuer", _oidc_config()['issuer']),
+        "oidc_client_id": entry.get("oidc_client_id", _oidc_config()['client_id']),
     }
     result = _accounts.import_auth_payload(payload, merge=True)
     if not result.get("ok"):
