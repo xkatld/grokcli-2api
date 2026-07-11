@@ -550,6 +550,44 @@
       .main { padding: 16px 14px 40px; }
       .grid-2 { grid-template-columns: 1fr; }
     }
+
+    :root[data-theme="light"] {
+      --bg: #f8fafc;
+      --bg-elevated: #ffffff;
+      --bg-card: rgba(255, 255, 255, 0.8);
+      --bg-soft: rgba(0, 0, 0, 0.03);
+      --bg-soft-2: rgba(0, 0, 0, 0.055);
+      --border: rgba(148, 163, 184, 0.15);
+      --border-strong: rgba(148, 163, 184, 0.25);
+      --text: #0f172a;
+      --text-2: #334155;
+      --muted: #64748b;
+      --accent: #0d9488;
+      --accent-2: #7c3aed;
+      --accent-3: #0284c7;
+      --shadow: 0 10px 30px rgba(0, 0, 0, 0.05);
+      --glow: 0 0 40px rgba(13, 148, 136, 0.08);
+    }
+    :root[data-theme="light"] body {
+      background:
+        radial-gradient(1200px 700px at -10% -20%, rgba(13, 148, 136, 0.06), transparent 55%),
+        radial-gradient(1000px 600px at 110% 0%, rgba(124, 58, 237, 0.07), transparent 50%),
+        radial-gradient(800px 500px at 50% 120%, rgba(2, 132, 199, 0.04), transparent 45%),
+        var(--bg);
+    }
+    :root[data-theme="light"] .sidebar {
+      background: linear-gradient(180deg, rgba(255, 255, 255, 0.95), rgba(248, 250, 252, 0.92));
+    }
+    :root[data-theme="light"] input,
+    :root[data-theme="light"] select,
+    :root[data-theme="light"] textarea {
+      background: rgba(255, 255, 255, 0.8);
+      color: var(--text);
+      border-color: rgba(148, 163, 184, 0.3);
+    }
+    :root[data-theme="light"] .table-wrap {
+      background: rgba(255, 255, 255, 0.5);
+    }
   </style>
 </head>
 <body>
@@ -619,6 +657,7 @@
       <div class="sidebar-foot">
         <a class="side-link" href="/docs" target="_blank">API Docs ↗</a>
         <a class="side-link" href="/health" target="_blank">Health ↗</a>
+        <button class="btn sm ghost" id="btn-toggle-theme" style="justify-content:flex-start;padding-left:0;margin-bottom:4px">☼ 白色主题</button>
         <button class="btn sm ghost" id="btn-logout" style="justify-content:flex-start;padding-left:0">退出登录</button>
       </div>
     </aside>
@@ -1030,6 +1069,9 @@
   </div>
 
 <script>
+const THEME_KEY = "g2a_theme";
+let current_theme = localStorage.getItem(THEME_KEY) || "dark";
+document.documentElement.setAttribute("data-theme", current_theme);
 const TOKEN_KEY = "g2a_admin_token";
 const REG_CONFIG_KEY = "g2a_register_config";
 let token = localStorage.getItem(TOKEN_KEY) || "";
@@ -2120,6 +2162,21 @@ $("auth-submit").onclick = async () => {
 };
 $("password").addEventListener("keydown", e => { if (e.key === "Enter") $("auth-submit").click(); });
 $("auth-refresh").onclick = () => bootstrap();
+const theme_btn = $("btn-toggle-theme");
+function update_theme_ui() {
+  if (current_theme === "light") {
+    theme_btn.textContent = "☾ 暗色主题";
+  } else {
+    theme_btn.textContent = "☼ 白色主题";
+  }
+}
+update_theme_ui();
+theme_btn.onclick = () => {
+  current_theme = current_theme === "light" ? "dark" : "light";
+  document.documentElement.setAttribute("data-theme", current_theme);
+  localStorage.setItem(THEME_KEY, current_theme);
+  update_theme_ui();
+};
 $("btn-logout").onclick = async () => {
   try { await api("/logout", { method: "POST" }); } catch {}
   token = "";
