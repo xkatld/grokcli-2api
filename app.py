@@ -40,11 +40,9 @@ from config import (
     FORCE_UPSTREAM_STREAM,
     HOST,
     PORT,
-    REASONING_COMPAT,
     SSE_KEEPALIVE_INTERVAL,
     STATIC_DIR,
     TIMEOUT,
-    UPSTREAM_BASE,
 )
 import config as _config
 from models import load_models_from_cache, resolve_model

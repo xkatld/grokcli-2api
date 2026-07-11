@@ -17,7 +17,16 @@ from typing import Any
 import httpx
 
 from auth_store import mutate_auth_map, read_auth_map, write_auth_map
-from config import GROK_CLI_CLIENT_ID, OIDC_DEVICE_URL, OIDC_SCOPES, OIDC_TOKEN_URL
+
+
+def _oidc_config() -> dict[str, str]:
+    import config
+    return {
+        "client_id": config.GROK_CLI_CLIENT_ID,
+        "device_url": config.OIDC_DEVICE_URL,
+        "scopes": config.OIDC_SCOPES,
+        "token_url": config.OIDC_TOKEN_URL,
+    }
 
 # In-memory device sessions (server-side poll)
 _lock = threading.RLock()
@@ -130,10 +139,10 @@ def entry_from_token_response(
         prev.get("oidc_client_id")
         or claims.get("client_id")
         or claims.get("aud")
-        or GROK_CLI_CLIENT_ID
+        or _oidc_config()['client_id']
     )
     if isinstance(client_id, list):
-        client_id = client_id[0] if client_id else GROK_CLI_CLIENT_ID
+        client_id = client_id[0] if client_id else _oidc_config()['client_id']
 
     expires_in = token_data.get("expires_in")
     exp = parse_expires_at(None, access)
@@ -331,7 +340,7 @@ def refresh_access_token(
         )
     client_id = (
         entry.get("oidc_client_id")
-        or GROK_CLI_CLIENT_ID
+        or _oidc_config()['client_id']
     )
     form = {
         "grant_type": "refresh_token",
@@ -340,10 +349,10 @@ def refresh_access_token(
     }
     headers = {"Content-Type": "application/x-www-form-urlencoded"}
     if client is not None:
-        resp = client.post(OIDC_TOKEN_URL, data=form, headers=headers)
+        resp = client.post(_oidc_config()['token_url'], data=form, headers=headers)
     else:
         with httpx.Client(timeout=30.0) as c:
-            resp = c.post(OIDC_TOKEN_URL, data=form, headers=headers)
+            resp = c.post(_oidc_config()['token_url'], data=form, headers=headers)
     if resp.status_code >= 400:
         body = resp.text[:400]
         if _is_permanent_refresh_failure(resp.status_code, body):
@@ -438,12 +447,12 @@ def start_device_authorization(
     scopes: str | None = None,
 ) -> dict[str, Any]:
     """Start OIDC device flow; returns session for UI polling."""
-    cid = client_id or GROK_CLI_CLIENT_ID
-    scope = scopes or OIDC_SCOPES
+    cid = client_id or _oidc_config()['client_id']
+    scope = scopes or _oidc_config()['scopes']
     form = {"client_id": cid, "scope": scope}
     with httpx.Client(timeout=30.0) as client:
         resp = client.post(
-            OIDC_DEVICE_URL,
+            _oidc_config()['device_url'],
             data=form,
             headers={"Content-Type": "application/x-www-form-urlencoded"},
         )
@@ -507,7 +516,7 @@ def start_device_authorization(
         "expires_in": expires_in,
         "capture": True,
         "native_oidc": True,
-        "command": f"OIDC device @ {OIDC_DEVICE_URL}",
+        "command": f"OIDC device @ {_oidc_config()['device_url']}",
     }
 
 
@@ -535,7 +544,7 @@ def _device_poll_worker(session_id: str) -> None:
         try:
             with httpx.Client(timeout=30.0) as client:
                 resp = client.post(
-                    OIDC_TOKEN_URL,
+                    _oidc_config()['token_url'],
                     data=form,
                     headers={"Content-Type": "application/x-www-form-urlencoded"},
                 )
