@@ -26,6 +26,24 @@
   --font: "Inter", "Segoe UI", system-ui, -apple-system, sans-serif;
   --mono: "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
   --glow: 0 0 40px rgba(94, 234, 212, 0.18);
+  --accent-glow: 0 0 40px rgba(94, 234, 212, 0.18);
+  --accent-gradient: linear-gradient(135deg, rgba(94, 234, 212, 0.12), rgba(139, 92, 246, 0.1));
+  --accent-border: rgba(94, 234, 212, 0.25);
+  --accent-bg-soft: rgba(94, 234, 212, 0.15);
+  --accent-stat-glow: radial-gradient(circle, rgba(94, 234, 212, 0.12), transparent 70%);
+  --accent-focus-border: rgba(94, 234, 212, 0.55);
+  --accent-focus-shadow: 0 0 0 3px rgba(94, 234, 212, 0.12);
+  --accent-hover-border: rgba(94, 234, 212, 0.45);
+  --accent-hover-bg: rgba(94, 234, 212, 0.06);
+  --accent-btn-primary-bg: linear-gradient(135deg, rgba(94, 234, 212, 0.22), rgba(139, 92, 246, 0.22));
+  --accent-btn-primary-border: rgba(94, 234, 212, 0.4);
+  --accent-btn-primary-shadow: 0 8px 24px rgba(94, 234, 212, 0.08);
+  --accent-btn-primary-text: #e8fffb;
+  --accent-pill-border: rgba(94, 234, 212, 0.35);
+  --accent-pill-bg: rgba(94, 234, 212, 0.08);
+  --accent-device-bg: rgba(94, 234, 212, 0.04);
+  --accent-device-border: 1px dashed rgba(94, 234, 212, 0.35);
+  --accent-code-glow: 0 0 20px rgba(94, 234, 212, 0.3);
 }
 
 :root[data-theme="light"] {
@@ -34,16 +52,34 @@
   --bg-card: rgba(255, 255, 255, 0.8);
   --bg-soft: rgba(0, 0, 0, 0.03);
   --bg-soft-2: rgba(0, 0, 0, 0.055);
-  --border: rgba(148, 163, 184, 0.15);
-  --border-strong: rgba(148, 163, 184, 0.25);
+  --border: rgba(148, 163, 184, 0.12);
+  --border-strong: rgba(148, 163, 184, 0.22);
   --text: #0f172a;
   --text-2: #334155;
   --muted: #64748b;
-  --accent: #0d9488;
-  --accent-2: #7c3aed;
-  --accent-3: #0284c7;
+  --accent: #2563eb;
+  --accent-2: #0284c7;
+  --accent-3: #38bdf8;
   --shadow: 0 10px 30px rgba(0, 0, 0, 0.05);
-  --glow: 0 0 40px rgba(13, 148, 136, 0.08);
+  --glow: 0 0 40px rgba(37, 99, 235, 0.08);
+  --accent-glow: 0 0 40px rgba(37, 99, 235, 0.08);
+  --accent-gradient: linear-gradient(135deg, rgba(37, 99, 235, 0.08), rgba(2, 132, 199, 0.06));
+  --accent-border: rgba(37, 99, 235, 0.18);
+  --accent-bg-soft: rgba(37, 99, 235, 0.1);
+  --accent-stat-glow: radial-gradient(circle, rgba(37, 99, 235, 0.08), transparent 70%);
+  --accent-focus-border: rgba(37, 99, 235, 0.45);
+  --accent-focus-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+  --accent-hover-border: rgba(37, 99, 235, 0.35);
+  --accent-hover-bg: rgba(37, 99, 235, 0.04);
+  --accent-btn-primary-bg: linear-gradient(135deg, #2563eb, #0284c7);
+  --accent-btn-primary-border: #2563eb;
+  --accent-btn-primary-shadow: 0 8px 24px rgba(37, 99, 235, 0.15);
+  --accent-btn-primary-text: #ffffff;
+  --accent-pill-border: rgba(37, 99, 235, 0.25);
+  --accent-pill-bg: rgba(37, 99, 235, 0.05);
+  --accent-device-bg: rgba(37, 99, 235, 0.03);
+  --accent-device-border: 1px dashed rgba(37, 99, 235, 0.25);
+  --accent-code-glow: 0 0 20px rgba(37, 99, 235, 0.2);
 }
 
 * { box-sizing: border-box; }
@@ -63,9 +99,9 @@ body {
 
 :root[data-theme="light"] body {
   background:
-    radial-gradient(1200px 700px at -10% -20%, rgba(13, 148, 136, 0.06), transparent 55%),
-    radial-gradient(1000px 600px at 110% 0%, rgba(124, 58, 237, 0.07), transparent 50%),
-    radial-gradient(800px 500px at 50% 120%, rgba(2, 132, 199, 0.04), transparent 45%),
+    radial-gradient(1200px 700px at -10% -20%, rgba(37, 99, 235, 0.05), transparent 55%),
+    radial-gradient(1000px 600px at 110% 0%, rgba(2, 132, 199, 0.06), transparent 50%),
+    radial-gradient(800px 500px at 50% 120%, rgba(56, 189, 248, 0.03), transparent 45%),
     var(--bg);
 }
 
@@ -156,8 +192,8 @@ a:hover { text-decoration: underline; }
   color: var(--text);
 }
 .nav-btn.active {
-  background: linear-gradient(135deg, rgba(94, 234, 212, 0.12), rgba(139, 92, 246, 0.1));
-  border-color: rgba(94, 234, 212, 0.25);
+  background: var(--accent-gradient);
+  border-color: var(--accent-border);
   color: var(--text);
   box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.02);
 }
@@ -173,7 +209,7 @@ a:hover { text-decoration: underline; }
   flex: 0 0 auto;
 }
 .nav-btn.active .nav-ico {
-  background: rgba(94, 234, 212, 0.15);
+  background: var(--accent-bg-soft);
 }
 .sidebar-foot {
   padding: 10px 8px 4px;
@@ -279,7 +315,7 @@ a:hover { text-decoration: underline; }
   width: 90px;
   height: 90px;
   border-radius: 50%;
-  background: radial-gradient(circle, rgba(94, 234, 212, 0.12), transparent 70%);
+  background: var(--accent-stat-glow);
   pointer-events: none;
 }
 .stat .label {
@@ -338,8 +374,8 @@ textarea {
   line-height: 1.5;
 }
 input:focus, select:focus, textarea:focus {
-  border-color: rgba(94, 234, 212, 0.55);
-  box-shadow: 0 0 0 3px rgba(94, 234, 212, 0.12);
+  border-color: var(--accent-focus-border);
+  box-shadow: var(--accent-focus-shadow);
 }
 input[type="file"] { padding: 8px 0; border: none; background: transparent; }
 input[type="checkbox"] { width: auto; accent-color: var(--accent); }
@@ -366,16 +402,16 @@ input[type="checkbox"] { width: auto; accent-color: var(--accent); }
   font-size: 0.9rem;
 }
 .btn:hover {
-  border-color: rgba(94, 234, 212, 0.45);
+  border-color: var(--accent-hover-border);
   color: var(--accent);
-  background: rgba(94, 234, 212, 0.06);
+  background: var(--accent-hover-bg);
 }
 .btn.primary {
-  background: linear-gradient(135deg, rgba(94, 234, 212, 0.22), rgba(139, 92, 246, 0.22));
-  border-color: rgba(94, 234, 212, 0.4);
-  color: #e8fffb;
+  background: var(--accent-btn-primary-bg);
+  border-color: var(--accent-btn-primary-border);
+  color: var(--accent-btn-primary-text);
   font-weight: 650;
-  box-shadow: 0 8px 24px rgba(94, 234, 212, 0.08);
+  box-shadow: var(--accent-btn-primary-shadow);
 }
 .btn.primary:hover { filter: brightness(1.08); color: #fff; }
 .btn.danger {
@@ -408,9 +444,9 @@ input[type="checkbox"] { width: auto; accent-color: var(--accent); }
 .pill.bad { border-color: rgba(248, 113, 113, 0.4); color: var(--bad); background: rgba(248, 113, 113, 0.08); }
 .pill.warn { border-color: rgba(251, 191, 36, 0.4); color: var(--warn); background: rgba(251, 191, 36, 0.08); }
 .pill.live {
-  border-color: rgba(94, 234, 212, 0.35);
+  border-color: var(--accent-pill-border);
   color: var(--accent);
-  background: rgba(94, 234, 212, 0.08);
+  background: var(--accent-pill-bg);
 }
 
 .table-wrap {
@@ -456,8 +492,8 @@ tr:hover td { background: rgba(255, 255, 255, 0.012); }
   overflow-x: auto;
 }
 .device-box {
-  background: rgba(94, 234, 212, 0.04);
-  border: 1px dashed rgba(94, 234, 212, 0.35);
+  background: var(--accent-device-bg);
+  border: var(--accent-device-border);
   border-radius: var(--radius-sm);
   padding: 16px;
   margin-bottom: 18px;
@@ -471,7 +507,7 @@ tr:hover td { background: rgba(255, 255, 255, 0.012); }
   letter-spacing: 4px;
   margin: 12px 0;
   user-select: all;
-  text-shadow: 0 0 20px rgba(94, 234, 212, 0.3);
+  text-shadow: var(--accent-code-glow);
 }
 
 .center-wrap {
