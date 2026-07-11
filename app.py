@@ -2399,7 +2399,7 @@ def main() -> None:
         print("  Admin/API links also follow request Host / X-Forwarded-* headers")
     elif host in ("0.0.0.0", "::"):
         print("  Tip: set GROK2API_PUBLIC_BASE_URL=https://your.domain if auto-detect is wrong")
-    print(f"  Upstream:           {config.UPSTREAM_BASE}")
+    print(f"  Upstream:           {_config.UPSTREAM_BASE}")
     if port != PORT:
         print(f"  NOTE: port {PORT} busy, using {port} instead")
 
