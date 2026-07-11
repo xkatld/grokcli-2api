@@ -685,7 +685,7 @@ function render_model_health_info() {
     || (status_cache && status_cache.model_health)
     || {};
   if (!mh.enabled) {
-    el.textContent = "模型探测：已关闭（GROK2API_MODEL_HEALTH=0）";
+    el.textContent = "模型探测：已关闭";
     return;
   }
   const last = mh.last;
@@ -841,8 +841,7 @@ msg = client.messages.create(
 )
 print(msg.content[0].text)`;
   }
-  $("guide-linux").textContent = `cp env.example env
-pip install -r requirements.txt
+  $("guide-linux").textContent = `pip install -r requirements.txt
 ./start.sh`;
 }
 
