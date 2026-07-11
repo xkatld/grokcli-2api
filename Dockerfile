@@ -1,4 +1,10 @@
-# grokcli-2api — self-contained image (vendored grok-build-auth protocol engine)
+FROM node:20-slim AS builder
+WORKDIR /web
+COPY web/package.json ./
+RUN npm install
+COPY web/ ./
+RUN npm run build
+
 FROM python:3.12-slim-bookworm
 
 ENV PYTHONDONTWRITEBYTECODE=1 \
@@ -11,7 +17,6 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
 
 WORKDIR /app
 
-# System deps: TLS only (protocol registration needs no browser)
 RUN apt-get update \
     && apt-get install -y --no-install-recommends \
         ca-certificates \
@@ -21,17 +26,13 @@ RUN apt-get update \
 COPY requirements.txt /app/requirements.txt
 RUN python -m pip install --no-cache-dir -r /app/requirements.txt
 
-# Copy full source last for better layer caching of deps
 COPY . /app
+COPY --from=builder /static /app/static
 
-# Ensure vendored registration packages are present
 RUN test -f /app/grok-build-auth/xconsole_client/client.py \
     && test -f /app/grok_build_adapter.py \
     && python -c "import grok_build_adapter, app; print('build-check', app.APP_VERSION, grok_build_adapter.ADAPTER_BUILD)"
 
 EXPOSE 3000
-
-# Persist runtime data
 VOLUME ["/app/data"]
-
 CMD ["python", "app.py"]
