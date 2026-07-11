@@ -632,12 +632,15 @@ async def import_sso(
 
     from concurrent.futures import ThreadPoolExecutor, as_completed
 
-    try:
-        from config import SSO_IMPORT_WORKERS
-    except Exception:
-        SSO_IMPORT_WORKERS = 4
-    # Hard cap regardless of client-supplied max_workers (714×curl_cffi freezes WSL)
-    workers = min(int(body.max_workers), int(SSO_IMPORT_WORKERS), max(1, len(sso_items)))
+    import config
+
+    def _sso_workers():
+        try:
+            return int(config.SSO_IMPORT_WORKERS)
+        except Exception:
+            return 4
+
+    workers = min(int(body.max_workers), int(_sso_workers()), max(1, len(sso_items)))
     with ThreadPoolExecutor(max_workers=workers, thread_name_prefix="sso-import-") as ex:
         for fut in as_completed(ex.submit(_import_one, (i, e, s)) for i, (e, s) in enumerate(sso_items, 1)):
             item = fut.result()

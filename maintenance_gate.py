@@ -12,11 +12,15 @@ import time
 from contextlib import contextmanager
 from typing import Iterator
 
-from config import MAINTENANCE_LOCK_TIMEOUT
 
 _lock = threading.Lock()
 _holder: str | None = None
 _held_since = 0.0
+
+
+def _lock_timeout() -> float:
+    import config
+    return float(config.MAINTENANCE_LOCK_TIMEOUT)
 
 
 @contextmanager
@@ -33,7 +37,7 @@ def maintenance_slot(
     busy, yields False immediately so the caller can defer work.
     """
     global _holder, _held_since
-    wait = MAINTENANCE_LOCK_TIMEOUT if timeout is None else max(0.0, float(timeout))
+    wait = _lock_timeout() if timeout is None else max(0.0, float(timeout))
     acquired = _lock.acquire(blocking=blocking, timeout=wait if blocking else -1)
     if not acquired:
         yield False
@@ -54,5 +58,5 @@ def status() -> dict[str, float | str | bool | None]:
         "busy": held,
         "holder": _holder if held else None,
         "held_for_sec": (time.time() - _held_since) if held and _held_since else 0.0,
-        "timeout_sec": MAINTENANCE_LOCK_TIMEOUT,
+        "timeout_sec": _lock_timeout(),
     }

@@ -17,18 +17,11 @@ from typing import Any
 import httpx
 
 from auth import GrokCredentials, list_live_credentials, load_credentials_by_id, upstream_headers
-from config import (
-    MODEL_HEALTH_AUTO_DISABLE,
-    MODEL_HEALTH_INTERVAL,
-    MODEL_HEALTH_STARTUP_DELAY,
-    MODEL_PROBE_BATCH,
-    MODEL_PROBE_WORKERS,
-    PROBE_MODELS,
-)
 from maintenance_gate import maintenance_slot
 
 
 _DEFAULT_MODEL = "grok-4.5"
+_DEFAULT_PROBE_MODELS = ["grok-4.5"]
 
 
 def _default_model() -> str:
@@ -39,6 +32,18 @@ def _default_model() -> str:
 def _upstream_base() -> str:
     import config
     return config.UPSTREAM_BASE
+
+
+def _model_health_config() -> dict[str, Any]:
+    import config
+    return {
+        "auto_disable": getattr(config, "MODEL_HEALTH_AUTO_DISABLE", True),
+        "interval": float(getattr(config, "MODEL_HEALTH_INTERVAL", 900.0)),
+        "startup_delay": float(getattr(config, "MODEL_HEALTH_STARTUP_DELAY", 120.0)),
+        "probe_batch": int(getattr(config, "MODEL_PROBE_BATCH", 15)),
+        "probe_workers": int(getattr(config, "MODEL_PROBE_WORKERS", 2)),
+        "probe_models": getattr(config, "PROBE_MODELS", _DEFAULT_PROBE_MODELS),
+    }
 
 _PROBE_TIMEOUT = 30.0
 
@@ -133,7 +138,8 @@ def handle_upstream_error_for_model(
     On upstream failure: block model (or whole account) from scheduling
     when the error indicates the model / account is unusable.
     """
-    if not account_id or not MODEL_HEALTH_AUTO_DISABLE:
+    cfg = _model_health_config()
+    if not account_id or not cfg["auto_disable"]:
         return None
 
     import account_pool
@@ -209,8 +215,9 @@ def probe_model_for_creds(
     On hard failure + auto_disable, blocks model / disables account.
     Always writes last_probe onto pool meta.
     """
+    cfg = _model_health_config()
     if auto_disable is None:
-        auto_disable = MODEL_HEALTH_AUTO_DISABLE
+        auto_disable = cfg["auto_disable"]
 
     t0 = time.time()
     base: dict[str, Any] = {
@@ -362,8 +369,10 @@ def probe_single_account(
     auto_disable: bool | None = None,
     source: str = "manual",
 ) -> dict[str, Any]:
-    """Probe one account with one model (default DEFAULT / PROBE_MODELS[0])."""
-    model = (model or (PROBE_MODELS[0] if PROBE_MODELS else _default_model())).strip()
+    """Probe one account with one model (default DEFAULT / cfg["probe_models"][0])."""
+    cfg = _model_health_config()
+    models_cfg = cfg["probe_models"]
+    model = (model or (models_cfg[0] if models_cfg else _default_model())).strip()
     creds = load_credentials_by_id(account_id)
     result = probe_model_for_creds(
         creds, model, auto_disable=auto_disable, source=source
@@ -400,7 +409,8 @@ def probe_account_models(
     max_accounts: int | None = None,
 ) -> dict[str, Any]:
     """Probe one or all accounts for model availability (concurrency-capped)."""
-    models = models or list(PROBE_MODELS) or [_default_model()]
+    cfg = _model_health_config()
+    models = models or list(cfg["probe_models"]) or [_default_model()]
     if account_id:
         creds_list = [load_credentials_by_id(account_id)]
         deferred = 0
@@ -411,7 +421,7 @@ def probe_account_models(
         # Background cycles batch; manual all can go larger but still hard-capped
         if max_accounts is None:
             max_accounts = (
-                MODEL_PROBE_BATCH if source == "background" else MODEL_PROBE_BATCH * 2
+                cfg["probe_batch"] if source == "background" else cfg["probe_batch"] * 2
             )
         if max_accounts and len(creds_list) > max_accounts:
             deferred = len(creds_list) - max_accounts
@@ -439,7 +449,7 @@ def probe_account_models(
         )
 
     tasks = [(creds, model) for creds in creds_list for model in models]
-    workers = max_workers if max_workers is not None else MODEL_PROBE_WORKERS
+    workers = max_workers if max_workers is not None else cfg["probe_workers"]
     workers = min(int(workers), max(1, len(tasks))) if tasks else 1
     if tasks:
         with ThreadPoolExecutor(
@@ -485,8 +495,9 @@ def probe_all_accounts_concurrent(
     max_accounts: int | None = None,
 ) -> dict[str, Any]:
     """Probe accounts concurrently (admin UI "全部模型探测") with hard caps."""
+    cfg = _model_health_config()
     if max_workers is None:
-        max_workers = MODEL_PROBE_WORKERS
+        max_workers = cfg["probe_workers"]
     # Reuse batched probe_account_models for consistent limits
     return probe_account_models(
         None,
@@ -502,16 +513,17 @@ def probe_all_accounts_concurrent(
 
 
 def _interval() -> float:
+    cfg = _model_health_config()
     try:
         # 0 = disabled (on-demand only)
-        v = float(os.getenv("GROK2API_MODEL_HEALTH_INTERVAL", str(MODEL_HEALTH_INTERVAL)))
+        v = float(os.getenv("GROK2API_MODEL_HEALTH_INTERVAL", str(cfg["interval"])))
         return max(0.0, v)
     except ValueError:
-        return float(MODEL_HEALTH_INTERVAL)
+        return float(cfg["interval"])
 
 
 def run_once(*, source: str = "background") -> dict[str, Any]:
-    """Probe a batch of live accounts with PROBE_MODELS (error check cycle)."""
+    """Probe a batch of live accounts with cfg["probe_models"] (error check cycle)."""
     # Background cycles defer quickly if token refresh holds the slot so they
     # never stampede together. Manual admin "probe all" waits longer.
     wait_timeout = 5.0 if source == "background" else None
@@ -542,7 +554,7 @@ def run_once(*, source: str = "background") -> dict[str, Any]:
             return result
         result = probe_account_models(
             None,
-            list(PROBE_MODELS) or [_default_model()],
+            list(cfg["probe_models"]) or [_default_model()],
             auto_disable=True,
             source=source,
         )
@@ -574,7 +586,7 @@ def request_run_soon() -> None:
 
 def _startup_delay() -> float:
     try:
-        return max(15.0, float(MODEL_HEALTH_STARTUP_DELAY))
+        return max(15.0, float(cfg["startup_delay"]))
     except Exception:
         return 90.0
 
@@ -642,9 +654,9 @@ def status(*, light: bool = False) -> dict[str, Any]:
         not in ("0", "false", "no"),
         "interval_sec": interval,
         "startup_delay_sec": _startup_delay(),
-        "probe_workers": MODEL_PROBE_WORKERS,
-        "probe_batch": MODEL_PROBE_BATCH,
-        "probe_models": list(PROBE_MODELS) or [_default_model()],
-        "auto_disable": MODEL_HEALTH_AUTO_DISABLE,
+        "probe_workers": cfg["probe_workers"],
+        "probe_batch": cfg["probe_batch"],
+        "probe_models": list(cfg["probe_models"]) or [_default_model()],
+        "auto_disable": cfg["auto_disable"],
         "last": last,
     }
