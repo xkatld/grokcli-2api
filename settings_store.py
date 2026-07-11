@@ -9,7 +9,7 @@ import threading
 import time
 from typing import Any
 
-from config import ACCOUNT_MODE, ADMIN_PASSWORD, DATA_DIR
+from config import DATA_DIR
 
 _lock = threading.RLock()
 
@@ -133,13 +133,15 @@ def _hash_password(password: str, salt: str) -> str:
     ).hex()
 
 def is_setup_needed() -> bool:
-    if ADMIN_PASSWORD:
+    import config
+    if config.ADMIN_PASSWORD:
         return False
     data = _load()
     return not data.get("admin_password_hash")
 
 def has_admin_password() -> bool:
-    if ADMIN_PASSWORD:
+    import config
+    if config.ADMIN_PASSWORD:
         return True
     data = _load()
     return bool(data.get("admin_password_hash"))
@@ -158,7 +160,8 @@ def set_admin_password(password: str) -> None:
 def verify_admin_password(password: str) -> bool:
     if not password:
         return False
-    if ADMIN_PASSWORD and secrets.compare_digest(password, ADMIN_PASSWORD):
+    import config
+    if config.ADMIN_PASSWORD and secrets.compare_digest(password, config.ADMIN_PASSWORD):
         return True
     data = _load()
     salt = data.get("admin_password_salt")
@@ -222,8 +225,9 @@ def _normalize_mode(mode: str | None) -> str:
     return mode
 
 def get_account_mode() -> str:
-    if ACCOUNT_MODE:
-        return _normalize_mode(ACCOUNT_MODE)
+    import config
+    if config.ACCOUNT_MODE:
+        return _normalize_mode(config.ACCOUNT_MODE)
     data = _load()
     return _normalize_mode(str(data.get("account_mode") or DEFAULT_ACCOUNT_MODE))
 
@@ -295,11 +299,12 @@ def touch_account_stats(
 
 def get_public_settings() -> dict[str, Any]:
     data = _load()
+    import config
     return {
         "account_mode": get_account_mode(),
         "has_admin_password": has_admin_password(),
         "setup_needed": is_setup_needed(),
-        "admin_password_from_env": bool(ADMIN_PASSWORD),
+        "admin_password_from_env": bool(config.ADMIN_PASSWORD),
         "updated_at": data.get("updated_at"),
     }
 
