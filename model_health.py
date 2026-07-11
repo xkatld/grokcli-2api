@@ -585,6 +585,7 @@ def request_run_soon() -> None:
 
 
 def _startup_delay() -> float:
+    cfg = _model_health_config()
     try:
         return max(15.0, float(cfg["startup_delay"]))
     except Exception:
@@ -644,6 +645,7 @@ def stop_background() -> None:
 
 
 def status(*, light: bool = False) -> dict[str, Any]:
+    cfg = _model_health_config()
     interval = _interval()
     last = None
     if not light and _last_run:
