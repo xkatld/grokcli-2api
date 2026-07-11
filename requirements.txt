@@ -8,3 +8,4 @@ python-multipart>=0.0.9
 # registration engine (dongguatanglinux/grok-build-auth HTTP protocol + MoeMail)
 requests>=2.31.0
 python-dotenv>=1.0.0
+pyyaml>=6.0

@@ -1177,9 +1177,66 @@ async def models_sync(
     request: Request,
     x_admin_token: str | None = Header(default=None, alias="X-Admin-Token"),
 ):
-    """Fetch model list from cli-chat-proxy and update models_cache.json."""
     require_admin(request, x_admin_token)
     result = sync_models_from_upstream()
     if not result.get("ok"):
         raise HTTPException(status_code=502, detail=result.get("error") or "sync failed")
     return result
+
+
+class SettingsBody(BaseModel):
+    default_model: str
+    require_api_key: str
+    token_maintain_interval: float
+    model_health_interval: float
+    reasoning_compat: str
+    xai_proxy: str
+    xai_proxy_username: str
+    xai_proxy_password: str
+    moemail_base_url: str
+    moemail_api_key: str
+    moemail_domain: str
+    moemail_expiry_ms: int
+    public_base_url: str
+
+
+class PasswordBody(BaseModel):
+    password: str = Field(min_length=4, max_length=128)
+
+
+@router.get("/settings")
+async def get_settings(
+    request: Request,
+    x_admin_token: str | None = Header(default=None, alias="X-Admin-Token"),
+):
+    require_admin(request, x_admin_token)
+    import config
+    res = {}
+    for k in config.DEFAULTS:
+        res[k.lower()] = getattr(config, k)
+    return res
+
+
+@router.post("/settings")
+async def save_settings(
+    request: Request,
+    body: SettingsBody,
+    x_admin_token: str | None = Header(default=None, alias="X-Admin-Token"),
+):
+    require_admin(request, x_admin_token)
+    import settings_store
+    data = body.model_dump()
+    for k, v in data.items():
+        settings_store.set_config(k, v)
+    return {"ok": True}
+
+
+@router.post("/settings/password")
+async def save_password(
+    request: Request,
+    body: PasswordBody,
+    x_admin_token: str | None = Header(default=None, alias="X-Admin-Token"),
+):
+    require_admin(request, x_admin_token)
+    set_admin_password(body.password)
+    return {"ok": True}

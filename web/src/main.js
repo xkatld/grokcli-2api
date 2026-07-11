@@ -17,6 +17,7 @@ const PAGE_META = {
   accounts: { title: "账号 / 轮询", sub: "Grok 账号、设备码登录、额度与导入导出" },
   models: { title: "模型", sub: "上游模型缓存与探测结果" },
   guide: { title: "接入指南", sub: "OpenAI / Anthropic 客户端配置示例" },
+  settings: { title: "系统设置", sub: "管理与修改 SQLite 数据库中的动态参数" },
 };
 
 function $(id) { return document.getElementById(id); }
@@ -135,6 +136,9 @@ function switch_tab(name) {
   if (panel) panel.classList.add("active");
   $("page-title").textContent = meta.title;
   $("page-sub").textContent = meta.sub;
+  if (name === "settings") {
+    load_settings();
+  }
 }
 
 function build_mobile_nav() {
@@ -1565,5 +1569,62 @@ if ($("btn-save-reg")) {
 if ($("btn-refresh-reg")) {
   $("btn-refresh-reg").onclick = () => poll_reg_session();
 }
+
+async function load_settings() {
+  try {
+    const data = await api("/settings");
+    $("set-default-model").value = data.default_model || "";
+    $("set-require-api-key").value = data.require_api_key || "auto";
+    $("set-reasoning-compat").value = data.reasoning_compat || "off";
+    $("set-token-maintain-interval").value = data.token_maintain_interval || 180;
+    $("set-model-health-interval").value = data.model_health_interval || 900;
+    $("set-public-base-url").value = data.public_base_url || "";
+    $("set-xai-proxy").value = data.xai_proxy || "";
+    $("set-xai-proxy-username").value = data.xai_proxy_username || "";
+    $("set-xai-proxy-password").value = data.xai_proxy_password || "";
+    $("set-moemail-base-url").value = data.moemail_base_url || "";
+    $("set-moemail-api-key").value = data.moemail_api_key || "";
+    $("set-moemail-domain").value = data.moemail_domain || "";
+    $("set-moemail-expiry-ms").value = data.moemail_expiry_ms || 3600000;
+  } catch (e) {
+    toast(e.message, false);
+  }
+}
+
+$("btn-save-settings").onclick = async () => {
+  const body = {
+    default_model: $("set-default-model").value.trim(),
+    require_api_key: $("set-require-api-key").value,
+    reasoning_compat: $("set-reasoning-compat").value,
+    token_maintain_interval: parseFloat($("set-token-maintain-interval").value) || 180,
+    model_health_interval: parseFloat($("set-model-health-interval").value) || 900,
+    public_base_url: $("set-public-base-url").value.trim(),
+    xai_proxy: $("set-xai-proxy").value.trim(),
+    xai_proxy_username: $("set-xai-proxy-username").value.trim(),
+    xai_proxy_password: $("set-xai-proxy-password").value.trim(),
+    moemail_base_url: $("set-moemail-base-url").value.trim(),
+    moemail_api_key: $("set-moemail-api-key").value.trim(),
+    moemail_domain: $("set-moemail-domain").value.trim(),
+    moemail_expiry_ms: parseInt($("set-moemail-expiry-ms").value, 10) || 3600000,
+  };
+  try {
+    await api("/settings", { method: "POST", body: JSON.stringify(body) });
+    toast("设置已保存到数据库");
+  } catch (e) {
+    toast(e.message, false);
+  }
+};
+
+$("btn-change-password").onclick = async () => {
+  const password = $("set-admin-password").value;
+  if (!password || password.length < 4) return toast("密码至少 4 位", false);
+  try {
+    await api("/settings/password", { method: "POST", body: JSON.stringify({ password }) });
+    $("set-admin-password").value = "";
+    toast("密码修改成功");
+  } catch (e) {
+    toast(e.message, false);
+  }
+};
 
 bootstrap();

@@ -69,6 +69,7 @@
         <button class="nav-btn" data-tab="accounts"><span class="nav-ico">◎</span>账号 / 轮询</button>
         <button class="nav-btn" data-tab="models"><span class="nav-ico">✦</span>模型</button>
         <button class="nav-btn" data-tab="guide"><span class="nav-ico">⇢</span>接入指南</button>
+        <button class="nav-btn" data-tab="settings"><span class="nav-ico">⚙</span>设置</button>
       </nav>
       <div class="sidebar-foot">
         <a class="side-link" href="/docs" target="_blank">API Docs ↗</a>
@@ -463,6 +464,123 @@
           <div class="codebox" id="guide-anthropic"></div>
           <label style="margin-top:12px">Linux 服务器快速部署</label>
           <div class="codebox" id="guide-linux"></div>
+        </div>
+      </div>
+
+      <div id="panel-settings" class="panel">
+        <div class="card">
+          <div class="card-head">
+            <div>
+              <h3>系统可调节配置</h3>
+              <p>动态修改并保存至 SQLite 数据库中，无需重启服务。</p>
+            </div>
+            <button class="btn sm primary" id="btn-save-settings">保存全部设置</button>
+          </div>
+          <div class="row">
+            <div>
+              <label>默认模型</label>
+              <input id="set-default-model" />
+            </div>
+            <div>
+              <label>API Key 验证</label>
+              <select id="set-require-api-key">
+                <option value="auto">auto — 自动</option>
+                <option value="true">true — 强制启用</option>
+                <option value="false">false — 禁用验证</option>
+              </select>
+            </div>
+            <div>
+              <label>Reasoning 兼容模式</label>
+              <select id="set-reasoning-compat">
+                <option value="off">off — 仅 reasoning_content</option>
+                <option value="think_tag">think_tag — 包装在 think 标签内</option>
+                <option value="content">content — 合并到 content</option>
+              </select>
+            </div>
+          </div>
+          <div class="row" style="margin-top:12px">
+            <div>
+              <label>Token 自动续期间隔 (秒)</label>
+              <input id="set-token-maintain-interval" type="number" />
+            </div>
+            <div>
+              <label>模型健康探测间隔 (秒)</label>
+              <input id="set-model-health-interval" type="number" />
+            </div>
+            <div>
+              <label>公网 API 基址 (Public Base URL)</label>
+              <input id="set-public-base-url" />
+            </div>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-head">
+            <div>
+              <h3>代理配置</h3>
+              <p>全局上游 x.ai 请求代理代理配置。</p>
+            </div>
+          </div>
+          <div class="row">
+            <div>
+              <label>代理地址 (GROK2API_XAI_PROXY)</label>
+              <input id="set-xai-proxy" placeholder="http://127.0.0.1:7890" />
+            </div>
+            <div>
+              <label>代理用户名</label>
+              <input id="set-xai-proxy-username" />
+            </div>
+            <div>
+              <label>代理密码</label>
+              <input id="set-xai-proxy-password" type="password" />
+            </div>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-head">
+            <div>
+              <h3>MoeMail 邮箱注册默认配置</h3>
+              <p>协议批量注册 x.ai 账号时，邮箱服务相关配置项。</p>
+            </div>
+          </div>
+          <div class="row">
+            <div>
+              <label>Base URL</label>
+              <input id="set-moemail-base-url" />
+            </div>
+            <div>
+              <label>API Key</label>
+              <input id="set-moemail-api-key" type="password" />
+            </div>
+            <div>
+              <label>Domain</label>
+              <input id="set-moemail-domain" />
+            </div>
+            <div>
+              <label>默认有效期 (毫秒)</label>
+              <input id="set-moemail-expiry-ms" type="number" />
+            </div>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-head">
+            <div>
+              <h3>管理员密码修改</h3>
+              <p>修改当前登录的管理台密码。</p>
+            </div>
+          </div>
+          <div class="row">
+            <div>
+              <label>新密码</label>
+              <input id="set-admin-password" type="password" placeholder="至少 4 位" />
+            </div>
+            <div style="flex:0 0 auto">
+              <label>&nbsp;</label>
+              <button class="btn danger" id="btn-change-password">修改密码</button>
+            </div>
+          </div>
         </div>
       </div>
 
